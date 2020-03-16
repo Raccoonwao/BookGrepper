@@ -91,7 +91,7 @@ def parseBooks(googleSheetId:str) -> []:
 
         try:
             bookInfo = parseABook(url, proxy=proxy)
-            bookInfo['callNo'] = search_call_number(bookInfo['ISBN'])
+            bookInfo['callNo'] = search_call_number(bookInfo.get('ISBN'))
             values=prepareValues(bookInfo)
             google_sheet.writeSheet(cell, values)
 
