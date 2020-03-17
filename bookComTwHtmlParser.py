@@ -209,7 +209,10 @@ class BookComTwHtmlParser(IHtmlParser):
         divPrice = soup.find('ul', class_='price')
         if not divPrice:
             return ''
-        return divPrice.li.em.string
+        try:
+            return divPrice.li.em.string
+        except:
+            return ''.join(list(divPrice.stripped_strings)).replace('定價：','').replace('元','')
 
     def __parseFormFactor(self, soup):
         liFormFactor=soup.find('li', string=re.compile(".*規格：.*"))
