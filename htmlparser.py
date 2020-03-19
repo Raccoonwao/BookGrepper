@@ -34,7 +34,7 @@ def parseABook(uri: str, fromFile: bool = False, proxy: Proxy = None) -> dict:
     parsed_uri = urlparse(uri)
     if '.books.com.tw' in parsed_uri.netloc:
         return bookComTwParser.parse(html, bookInfo)
-    raise NotImplementedError(f'Unsupported website:{uri}')
+    raise NotImplementedError('Unsupported website:' + uri)
 
 def xstr(s):
     if s is None:
@@ -77,12 +77,9 @@ def parseBooks(googleSheetId:str) -> []:
     google_sheet = GoogleSheet(googleSheetId)
     items = loadGoogleSheet(google_sheet)
 
-    # proxy_manager = ProxyManager()
     proxy = None  
     i=0
     for book in items:
-        # proxy = proxy_manager.next()  
-
         cell = book[0]
         url = book[1]
 
@@ -94,26 +91,17 @@ def parseBooks(googleSheetId:str) -> []:
             values=prepareValues(bookInfo)
             google_sheet.writeSheet(cell, values)
 
-            logger.info(f'Book loaded:{bookInfo["書名"]}')
+            title = bookInfo.get('書名')
+            logger.info(f'Book loaded:{title}')
 
-
-            i+=1
-            if i%2==0:
-                # long sleep after every 2 books to workaround avoid website reject
-                logger.info('Sleeping...')
-                time.sleep(10)
+            if not title == None:
+                i+=1
+                if i%2==0:
+                    # long sleep after every 2 books to workaround avoid website reject
+                    logger.info('Sleeping...')
+                    time.sleep(10)
         except NotImplementedError as e:
             logger.exception(e)
 
-while True:
-    try:
-        bookComTwParser = BookComTwHtmlParser()
-        parseBooks('1se8bYdJOctG3hTN3_r21WZdpBUuh9yDJrKg7FJumwfc')
-    except Exception as e:
-        if 'HTTPError' == e.__class__.__name__ and e.code == 408:
-            logger.info("Website request timeout. Pause for 15 seconds")
-            time.sleep(15)
-        else:
-            logger.exception(e)
-            break
-        
+bookComTwParser = BookComTwHtmlParser()
+parseBooks('1se8bYdJOctG3hTN3_r21WZdpBUuh9yDJrKg7FJumwfc')
