@@ -12,13 +12,16 @@ def search_call_number(isbn:str):
         return 'Missing ISBN'
     url = f'https://webcat.hkpl.gov.hk/search/query?match_1=PHRASE&field_1=isbn&term_1={isbn}&locale=en&theme=WEB'
     # logger.info(f'Searching Call Number. ISBN:{isbn}')
-    html = readHtml(url)
-    soup = BeautifulSoup(html, features="html.parser")
-    callNoTitleTd = soup.find('td', string='Call Number')
-    if callNoTitleTd:
-        callNoSpan = callNoTitleTd.find_next('span', dir='ltr')
-        return callNoSpan.string.strip()
-    else:
+    try:
+        html = readHtml(url)
+        soup = BeautifulSoup(html, features="html.parser")
+        callNoTitleTd = soup.find('td', string='Call Number')
+        if callNoTitleTd:
+            callNoSpan = callNoTitleTd.find_next('span', dir='ltr')
+            return callNoSpan.string.strip()
+        else:
+            return 'Not Found'
+    except:
         return 'Not Found'
 
 # callNo = search_call_number('9789867968722')

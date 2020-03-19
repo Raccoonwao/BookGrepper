@@ -1,8 +1,11 @@
 from urllib import request as urlrequest
 from urllib import response as urlresponse
-from urllib.parse import urlparse
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
+
 from googlesheet import GoogleSheet
 import urllib
+
 import re
 import codecs
 import time
@@ -25,16 +28,23 @@ def readFile(path:str) -> str:
     return html
 
 def parseABook(uri: str, fromFile: bool = False, proxy: Proxy = None) -> dict:
+    parsed_uri = urlsplit(uri) # remove uri query part
+    uri = urlunsplit([parsed_uri.scheme, parsed_uri.netloc, parsed_uri.path, '', ''])
+
+    bookInfo = { 'url' : uri, 'status' : None }
+
     if fromFile: 
         html = readFile(uri + '.html')
+        bookInfo['status'] = f'Loaded from file:{uri}.html'
     else:
-        html = readHtml(uri, proxy)
-
-    bookInfo = { 'url' : uri }
-    parsed_uri = urlparse(uri)
-    if '.books.com.tw' in parsed_uri.netloc:
-        return bookComTwParser.parse(html, bookInfo)
-    raise NotImplementedError(f'Unsupported website:{uri}')
+        if '.books.com.tw' in parsed_uri.netloc:
+            html = readHtml(uri, proxy)
+            bookInfo = bookComTwParser.parse(html, bookInfo)
+            bookInfo['status']='Done'
+            return bookInfo
+        bookInfo['status'] = 'Unsupported website'
+    
+    return bookInfo
 
 def xstr(s):
     if s is None:
@@ -42,11 +52,19 @@ def xstr(s):
     return str(s)
 
 def prepareValues(bookInfo: dict):
-    keys = ['ISBN', 'url', '出版社', '作者','繪者','譯者','出版日期','語言','定價','內容簡介','本書特色','得獎記錄','導讀','作者簡介','繪者簡介','譯者簡介','叢書系列','規格','出版地','原創地','適讀年齡','詳細分類','callNo','書名']
-     
-    row = []
+    keys = ['url', '出版社', '作者','繪者','譯者','出版日期','語言','定價','內容簡介','本書特色','得獎記錄','導讀','作者簡介','繪者簡介','譯者簡介','叢書系列','規格','出版地','原創地','適讀年齡','詳細分類','callNo','書名']
+
+    firstValue = bookInfo.get('ISBN')
+    if not firstValue:
+        firstValue = bookInfo.get('status')
+
+    row = [ firstValue ]
     for value in (xstr(bookInfo.get(key)) for key in keys):
-        row.append(value)
+        try:
+            row.append(value)
+        except:
+            break
+    
     return [row]
 
 def loadGoogleSheet(google_sheet:GoogleSheet, skipISBNFound: bool = True):
@@ -73,7 +91,7 @@ def fillCallNos(googleSheetId:str):
                 callNo = 'Not found' 
             google_sheet.writeSheet(row[0][1:]+ 'Y', [[callable]])
 
-def parseBooks(googleSheetId:str) -> []:
+def parseBooks(googleSheetId:str):
     google_sheet = GoogleSheet(googleSheetId)
     items = loadGoogleSheet(google_sheet)
 
@@ -94,30 +112,18 @@ def parseBooks(googleSheetId:str) -> []:
             values=prepareValues(bookInfo)
             google_sheet.writeSheet(cell, values)
 
-            logger.info(f'Book loaded:{bookInfo["書名"]}')
+            title = bookInfo.get("書名")
+            logger.info(f'Book loaded:{title}')
 
-
-            i+=1
-            if i%2==0:
-                # long sleep after every 2 books to workaround avoid website reject
-                logger.info('Sleeping...')
-                time.sleep(10)
+            if not title == None:
+                i+=1
+                if i%2==0:
+                    # long sleep after every 2 books to workaround avoid website reject
+                    logger.info('Sleeping...')
+                    time.sleep(10)
         except NotImplementedError as e:
             logger.exception(e)
 
-timeoutCnt=0
-while True:
-    try:
-        bookComTwParser = BookComTwHtmlParser()
-        parseBooks('1se8bYdJOctG3hTN3_r21WZdpBUuh9yDJrKg7FJumwfc')
-        timeoutCnt=0
-    except Exception as e:
-        if 'HTTPError' == e.__class__.__name__ and e.code == 408:
-            waitTime = 15 + timeoutCnt * 5
-            logger.info(f'Website request timeout. Pause for {waitTime} seconds')
-            timeoutCnt+=1
-            time.sleep(waitTime)
-        else:
-            logger.exception(e)
-            break
-        
+bookComTwParser = BookComTwHtmlParser()
+parseBooks('1se8bYdJOctG3hTN3_r21WZdpBUuh9yDJrKg7FJumwfc')
+
