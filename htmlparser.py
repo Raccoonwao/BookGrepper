@@ -105,14 +105,18 @@ def parseBooks(googleSheetId:str) -> []:
         except NotImplementedError as e:
             logger.exception(e)
 
+timeoutCnt=0
 while True:
     try:
         bookComTwParser = BookComTwHtmlParser()
         parseBooks('1se8bYdJOctG3hTN3_r21WZdpBUuh9yDJrKg7FJumwfc')
+        timeoutCnt=0
     except Exception as e:
         if 'HTTPError' == e.__class__.__name__ and e.code == 408:
-            logger.info("Website request timeout. Pause for 15 seconds")
-            time.sleep(15)
+            waitTime = 15 + timeoutCnt * 5
+            logger.info(f'Website request timeout. Pause for {waitTime} seconds')
+            timeoutCnt+=1
+            time.sleep(waitTime)
         else:
             logger.exception(e)
             break

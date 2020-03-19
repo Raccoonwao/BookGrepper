@@ -9,10 +9,10 @@ class GoogleSheet:
     def __init__(self, spreadsheet_id):
         self.spreadsheet_id=spreadsheet_id
         self.creds = None
-        self.service = self.build_service()
         self.SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+        self.service = self.__build_service()
 
-    def build_service(self):
+    def __build_service(self):
         """Shows basic usage of the Sheets API.
         Prints values from a sample spreadsheet.
         """
@@ -21,20 +21,20 @@ class GoogleSheet:
         # time.
         if os.path.exists('token.pickle'):
             with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
+                self.creds = pickle.load(token)
         # If there are no (valid) credentials available, let the user log in.
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+        if not self.creds or not self.creds.valid:
+            if self.creds and self.creds.expired and self.creds.refresh_token:
+                self.creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     'credentials.json', self.SCOPES)
-                creds = flow.run_local_server(port=0)
+                self.creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open('token.pickle', 'wb') as token:
-                pickle.dump(creds, token)
+                pickle.dump(self.creds, token)
 
-        service = build('sheets', 'v4', credentials=creds)
+        service = build('sheets', 'v4', credentials=self.creds)
         return service
 
     def writeSheet(self, range_name:str, values):
