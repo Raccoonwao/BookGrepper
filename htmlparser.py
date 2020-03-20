@@ -18,6 +18,7 @@ from pprint import pprint
 from proxymanager import ProxyManager, Proxy
 from HKLibrarySearcher import search_call_number
 from bookComTwHtmlParser import BookComTwHtmlParser
+from esliteComHtmlParser import EsliteComHtmlParser
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(message)s')
 logger = logging.getLogger(__name__)
@@ -37,18 +38,25 @@ def parseABook(uri: str, fromFile: bool = False, proxy: Proxy = None) -> dict:
         html = readFile(uri + '.html')
         bookInfo['status'] = f'Loaded from file:{uri}.html'
     else:
-        if '.books.com.tw' in parsed_uri.netloc:
-            try:
+        try:
+            if '.books.com.tw' in parsed_uri.netloc:
                 html = readHtml(uri, proxy)
                 bookInfo = bookComTwParser.parse(html, bookInfo)
                 bookInfo['status']='Done'
                 return bookInfo
-            except urllib.error.HTTPError as e:
-                if e.code == 404:
-                    bookInfo['status']='Web page read failed:'+str(e)
-                    return bookInfo
 
-        bookInfo['status'] = 'Unsupported website'
+            if '.eslite.com' in parsed_uri.netloc:
+                html = readHtml(uri, proxy)
+                bookInfo = esliteComParser.parse(html, bookInfo)
+                bookInfo['status']='Done'
+                return bookInfo
+
+            bookInfo['status'] = 'Unsupported website'
+
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                bookInfo['status']='Web page read failed:'+str(e)
+                return bookInfo
     
     return bookInfo
 
@@ -118,6 +126,7 @@ def parseBooks(googleSheetId:str):
             title = bookInfo.get("書名")
             logger.info(f'Book loaded:{title}')
 
+
             if not title == None:
                 i+=1
                 if i%2==0:
@@ -127,6 +136,8 @@ def parseBooks(googleSheetId:str):
         except NotImplementedError as e:
             logger.exception(e)
 
+
 bookComTwParser = BookComTwHtmlParser()
+esliteComParser = EsliteComHtmlParser()
 parseBooks('1se8bYdJOctG3hTN3_r21WZdpBUuh9yDJrKg7FJumwfc')
 
