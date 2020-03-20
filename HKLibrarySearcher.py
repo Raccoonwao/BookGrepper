@@ -4,7 +4,7 @@ import logging
 
 # https://webcat.hkpl.gov.hk/search/query?match_1=PHRASE&field_1=isbn&term_1=9789867968722
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 def search_call_number(isbn:str):

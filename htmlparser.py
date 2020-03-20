@@ -19,7 +19,7 @@ from proxymanager import ProxyManager, Proxy
 from HKLibrarySearcher import search_call_number
 from bookComTwHtmlParser import BookComTwHtmlParser
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(message)s')
 logger = logging.getLogger(__name__)
 
 def readFile(path:str) -> str:
@@ -32,16 +32,22 @@ def parseABook(uri: str, fromFile: bool = False, proxy: Proxy = None) -> dict:
     uri = urlunsplit([parsed_uri.scheme, parsed_uri.netloc, parsed_uri.path, '', ''])
 
     bookInfo = { 'url' : uri, 'status' : None }
-
+    import urllib3
     if fromFile: 
         html = readFile(uri + '.html')
         bookInfo['status'] = f'Loaded from file:{uri}.html'
     else:
         if '.books.com.tw' in parsed_uri.netloc:
-            html = readHtml(uri, proxy)
-            bookInfo = bookComTwParser.parse(html, bookInfo)
-            bookInfo['status']='Done'
-            return bookInfo
+            try:
+                html = readHtml(uri, proxy)
+                bookInfo = bookComTwParser.parse(html, bookInfo)
+                bookInfo['status']='Done'
+                return bookInfo
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    bookInfo['status']='Web page read failed:'+str(e)
+                    return bookInfo
+
         bookInfo['status'] = 'Unsupported website'
     
     return bookInfo
@@ -52,7 +58,7 @@ def xstr(s):
     return str(s)
 
 def prepareValues(bookInfo: dict):
-    keys = ['url', '出版社', '作者','繪者','譯者','出版日期','語言','定價','內容簡介','本書特色','得獎記錄','導讀','作者簡介','繪者簡介','譯者簡介','叢書系列','規格','出版地','原創地','適讀年齡','詳細分類','callNo','書名']
+    keys = ['url', '出版社', '作者','繪者','譯者','出版日期','語言','定價','內容簡介','本書特色','得獎記錄','導讀','作者簡介','繪者簡介','譯者簡介','叢書系列','規格','出版地','原創地','適讀年齡','詳細分類','callNo','ISBN13', '書名']
 
     firstValue = bookInfo.get('ISBN')
     if not firstValue:

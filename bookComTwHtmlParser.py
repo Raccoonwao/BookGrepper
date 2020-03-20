@@ -4,7 +4,7 @@ import re
 import logging
 
 class BookComTwHtmlParser(IHtmlParser):
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(message)s')
     logger = logging.getLogger(__name__)
 
     def parse(self, html, bookInfo:dict) -> dict:
