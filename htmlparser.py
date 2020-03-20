@@ -95,12 +95,9 @@ def parseBooks(googleSheetId:str):
     google_sheet = GoogleSheet(googleSheetId)
     items = loadGoogleSheet(google_sheet)
 
-    # proxy_manager = ProxyManager()
     proxy = None  
     i=0
     for book in items:
-        # proxy = proxy_manager.next()  
-
         cell = book[0]
         url = book[1]
 
